@@ -33,14 +33,14 @@ pipeline {
             steps {
                 script {
                     // Ensure we are on the main branch and update it
-                    bat 'git checkout $MAIN_BRANCH'
-                    bat 'git pull origin $MAIN_BRANCH'
+                    bat 'git checkout main'
+                    bat 'git pull origin main'
                     
                     // Merge the feature branch into the main branch
                     bat 'git merge origin/${env.BRANCH_NAME}'
                     
                     // Push changes back to the main branch
-                    bat 'git push origin $MAIN_BRANCH'
+                    bat 'git push origin main'
                 }
             }
         }
