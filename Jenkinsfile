@@ -4,30 +4,81 @@ pipeline {
     tools {
         maven 'MAVEN_HOME'
     }
+
+    environment {
+        // Define email configuration and file path
+        WAR_FILE = 'target/jenkins-trial-1.0-SNAPSHOT.jar'  // Adjust this path based on your project's setup
+        EMAIL_RECIPIENT = 'devduku@gmail.com'  // Replace with the actual recipient's email
+        GITHUB_REPO = 'git@github.com:DKallans/jenkins-trial.git' // Replace with your repo URL
+        MAIN_BRANCH = 'main' // Your main branch name
+    }
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                echo 'Build App'
-                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'git@github.com:DKallans/jenkins-trial.git']])
-                bat 'mvn clean package'
+                //Check out the code from the GitHub repository
+                checkout scmGit(branches: [[name: '*/ft-setup']], extensions: [], userRemoteConfigs: [[url: 'git@github.com:DKallans/jenkins-trial.git']])
             }
         }
-        stage('Test') {
+        
+        stage('Build and Test') {
             steps {
-                echo 'Test App'
+                script {
+                    // Run Maven build and tests
+                    bat 'mvn clean install'
+                }
             }
         }
-        stage('Deploy') {
+
+        stage('Merge to Main') {
             steps {
-                echo 'Deploy App'
+                script {
+                    // Ensure we are on the main branch and update it
+                    bat 'git checkout $MAIN_BRANCH'
+                    bat 'git pull origin $MAIN_BRANCH'
+                    
+                    // Merge the feature branch into the main branch
+                    bat 'git merge origin/${env.BRANCH_NAME}'
+                    
+                    // Push changes back to the main branch
+                    bat 'git push origin $MAIN_BRANCH'
+                }
+            }
+        }
+
+        stage('Package WAR') {
+            steps {
+                script {
+                    // Package the WAR file using Maven
+                    bat 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Send Email with WAR Attachment') {
+            steps {
+                script {
+                    // Use the Jenkins Email Extension Plugin to send the email with the WAR file
+                    emailext (
+                        subject: "Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "The build has been successfully completed, and the WAR file is attached.",
+                        to: "${env.EMAIL_RECIPIENT}",
+                        attachLog: true,
+                        attachmentsPattern: WAR_FILE
+                    )
+                }
             }
         }
     }
-    
     post {
         always {
-            emailext body: 'Summary', subject: 'PipelineStatus', to: 'devduku@gmail.com'
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            echo "Build and deployment completed successfully!"
+        }
+        failure {
+            echo "Build failed. Check the logs for details."
         }
     }
-    
 }
