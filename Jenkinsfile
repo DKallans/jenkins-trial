@@ -37,7 +37,7 @@ pipeline {
                     bat 'git pull origin main'
                     
                     // Merge the feature branch into the main branch
-                    bat 'git merge origin/${env.BRANCH_NAME}'
+                    bat 'git merge origin/ft-setup'
                     
                     // Push changes back to the main branch
                     bat 'git push origin main'
